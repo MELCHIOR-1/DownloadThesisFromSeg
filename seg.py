@@ -75,7 +75,7 @@ def trace_back():
 
 
 def formatFileName(filename):   # 去掉在文件名中无法使用的不合法字符，确保能正确创建文件
-    if (isinstance(filename, str)):
+    if (isinstance(filename, basestring)): # 看filename是否为basestring实例（str和unicode均属于basestring），不要使用str，否则中文路径会有问题
         tuple=('?','╲','*','/',',','"','<','>','|','“','"','，','‘','”',',','/',':')
         for char in tuple:
             if (filename.find(char)!=-1):
@@ -126,11 +126,11 @@ def DownloadThesisFromSeg(searchItem,usr,psd):
         loginUrl = r'https://library.seg.org/action/showLogin?redirectUri=http://library.seg.org/'
         socket.setdefaulttimeout(10)
         
-        proxy_ip =random.choice(proxyIP.proxy_list)
-        print proxy_ip
-        proxy_support = urllib2.ProxyHandler(proxy_ip)
+        #proxy_ip =random.choice(proxyIP.proxy_list)
+        #print proxy_ip
+        #proxy_support = urllib2.ProxyHandler(proxy_ip)
         user_agent = random.choice(user_agents.user_agents)
-        print user_agent
+        #print user_agent
         ######加载cookies，使用urllib、urllib2时可以传递cookies############################
         cj = cookielib.CookieJar()
         #opener = urllib2.build_opener(proxy_support,urllib2.HTTPCookieProcessor(cj))
@@ -147,7 +147,7 @@ def DownloadThesisFromSeg(searchItem,usr,psd):
         form = forms[0]
         #######使用get方法获得该标签的一个属性##############################################
         postUrl = initUrl + form.get('action')
-        
+        #print 'postUrl = ' + postUrl
         ##########将post需要传递的表单存入temp_variable中，键值对的形式######################
         temp_variable={}
         div_inputs = BeautifulSoup(resp)('input')
@@ -155,20 +155,26 @@ def DownloadThesisFromSeg(searchItem,usr,psd):
             if div_input.get('type')=='hidden':
                 temp_variable[div_input.get('name')] = div_input.get('value')
                 #print div_input.get('name') +" = " + temp_variable[div_input.get('name')]
-        temp_variable['LoginTextBox'] = usr
-        temp_variable['PasswordTextBox'] = psd
-        temp_variable['SubmitButton'] = 'Go'
+        temp_variable['UsernameBox'] = usr
+        temp_variable['PasswordBox'] = psd
+        temp_variable['LoginButton'] = 'Login'
         data = urllib.urlencode(temp_variable)
         
         resp = opener.open(postUrl,data).read()
         #print resp
+        #print cj
         
         
     
     
         #########全内容搜索，每次最多返回100个#############################################
-        searchUrl = 'http://library.seg.org/action/doSearch?AllField=%s&publication=all&resultsTab=std&target=default&startPage=%d&pageSize=100'%(searchItem,startPage)
+        # 注意：若搜索的关键字中含有空格，必须把空格替换成加号，否则，返回的网页会造成异常，全无下载权限
+        searchUrl = 'http://library.seg.org/action/doSearch?AllField=%s&countTerms=true&publication=all&resultsTab=std&target=default&startPage=%d&pageSize=100'%(searchItem.replace(' ','+'),startPage)
+        #searchUrl = r'http://library.seg.org/action/doSearch?AllField=%s&publication=all'%(searchItem.replace(' ','+'))        
+        #print 'searchUrl = ' + searchUrl
         resp = urllib2.urlopen(searchUrl).read()
+        #print resp
+        #print cj
         divs = BeautifulSoup(resp)('div')
         
         #############拆分标签，找到搜索到的文献总数，文献标题，年份，以及文献的链接###############
@@ -224,7 +230,7 @@ def DownloadThesisFromSeg(searchItem,usr,psd):
                             ###########使用urlretrieve直接下载会报错，因为在访问该网页时需要cookies，直接下载会显示cookie异常#####################
                             ###########所以先将要下载的文件流先存到一个变量中，然后写入文件，不知道这样对大文件下载是否管用？#########################                    
                             try:                    
-                                f = open(os.path.join(searchItem,formatFileName(title)+'.pdf'),'wb')  
+                                f = open(os.path.join(searchItem,formatFileName(title) +'.pdf'),'wb')  
                                 f.write(urllib2.urlopen(refUrl).read())
                             except Exception as err:
                                 print err
